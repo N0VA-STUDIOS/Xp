@@ -1,0 +1,1485 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#245edb" />
+  <meta name="description" content="GameOS XP - escritorio retro con launcher de juegos, notas y paint" />
+  <title>GameOS XP Pro</title>
+  <style>
+    :root{
+      --xp-blue:#245edb;
+      --xp-blue2:#4aa1ff;
+      --xp-blue3:#0d4fb9;
+      --xp-green:#3c873c;
+      --xp-green2:#67c15d;
+      --xp-bg:#ece9d8;
+      --xp-panel:#fff;
+      --xp-border:#0b46d7;
+      --xp-shadow: 0 16px 34px rgba(0,0,0,.36);
+      --text:#111;
+      --muted:#555;
+      --glass: rgba(236,233,216,.92);
+      --radius:14px;
+    }
+
+    *{ box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+    html,body{ width:100%; height:100%; margin:0; overflow:hidden; font-family:Tahoma, Verdana, Arial, sans-serif; color:var(--text); }
+    body{
+      background:
+        linear-gradient(to bottom, rgba(0,0,0,.10), rgba(0,0,0,.18)),
+        url("https://s3.amazonaws.com//depot.pacdudegames.com/spacehey/bliss.jpg") center/cover fixed no-repeat;
+      background-color:#2a6adf;
+    }
+
+    button, input, textarea, select { font: inherit; }
+    button { user-select:none; }
+    ::selection { background:#b7d8ff; }
+
+    #desktop{
+      position:relative;
+      width:100vw;
+      height:100vh;
+      overflow:hidden;
+      user-select:none;
+    }
+
+    #desktop::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(255,255,255,.18), transparent 40%),
+        radial-gradient(circle at 50% 100%, rgba(0,0,0,.18), transparent 34%);
+      pointer-events:none;
+    }
+
+    #icons{
+      position:absolute;
+      left:12px;
+      top:12px;
+      display:grid;
+      grid-template-columns: repeat(2, minmax(84px, 90px));
+      gap:12px;
+      z-index:2;
+    }
+
+    .icon{
+      width:90px;
+      padding:8px 6px;
+      border:none;
+      background:transparent;
+      color:#fff;
+      text-shadow:1px 1px 2px rgba(0,0,0,.88);
+      cursor:pointer;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:6px;
+      border-radius:10px;
+      outline:none;
+      transition: transform .12s ease, background .12s ease;
+    }
+    .icon:hover,.icon:focus{
+      background:rgba(255,255,255,.12);
+      transform: translateY(-1px);
+    }
+    .icon .glyph{
+      width:46px;height:46px;
+      border-radius:12px;
+      background:linear-gradient(#fff, #d8e1ff);
+      border:2px solid rgba(0,0,0,.16);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.95), 0 4px 12px rgba(0,0,0,.20);
+      display:grid;
+      place-items:center;
+      font-size:24px;
+    }
+    .icon span{
+      display:block;
+      width:100%;
+      font-size:12px;
+      line-height:1.05;
+      text-align:center;
+      word-break:break-word;
+    }
+
+    #windows{
+      position:absolute;
+      inset:0 0 44px 0;
+      z-index:3;
+      pointer-events:none;
+    }
+
+    .window{
+      position:absolute;
+      min-width:280px;
+      min-height:180px;
+      background:var(--glass);
+      border:2px solid var(--xp-border);
+      border-radius:var(--radius) var(--radius) 0 0;
+      box-shadow:var(--xp-shadow);
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      pointer-events:auto;
+      backdrop-filter: blur(2px);
+    }
+
+    .window.maximized{
+      border-radius:0;
+      left:0 !important;
+      top:0 !important;
+      width:100vw !important;
+      height:calc(100vh - 44px) !important;
+    }
+
+    .titlebar{
+      height:34px;
+      background:linear-gradient(to bottom, var(--xp-blue2), var(--xp-blue));
+      color:white;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:0 8px;
+      cursor:move;
+      flex:0 0 auto;
+      text-shadow:1px 1px 0 #00337a;
+    }
+    .titlebar .app-emoji{ font-size:18px; }
+    .titlebar .title{
+      flex:1;
+      min-width:0;
+      font-weight:bold;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .titlebar .controls{ display:flex; gap:4px; flex:0 0 auto; }
+    .titlebar button{
+      width:24px;height:22px;
+      border:2px outset #fff;
+      background:linear-gradient(#fff,#d7d7d7);
+      color:#111;
+      border-radius:4px;
+      padding:0;
+      cursor:pointer;
+      font-weight:bold;
+      line-height:1;
+    }
+    .titlebar button:active{ border-style:inset; }
+
+    .content{
+      flex:1;
+      min-height:0;
+      background:var(--xp-bg);
+      padding:12px;
+      overflow:auto;
+    }
+
+    .panel, .card, .field{
+      border:1px solid #aca899;
+      background:linear-gradient(#fff, #f6f2e7);
+      border-radius:10px;
+    }
+
+    .panel{
+      padding:12px;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.7);
+    }
+
+    .toolbar{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      align-items:center;
+      padding:8px;
+      margin-bottom:12px;
+      border:1px solid #aca899;
+      background:linear-gradient(#ffffff, #f3eddc);
+      border-radius:10px;
+    }
+
+    .xp-btn, .toolbar button, .toolbar a, .start-item, .mini-btn{
+      border:2px outset #fff;
+      background:linear-gradient(#fff, #ece9d8);
+      padding:6px 10px;
+      border-radius:8px;
+      cursor:pointer;
+      color:#111;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      transition: transform .08s ease, background .08s ease;
+    }
+    .xp-btn:active, .toolbar button:active, .toolbar a:active, .start-item:active, .mini-btn:active{
+      border-style:inset;
+      transform: translateY(1px);
+    }
+    .xp-btn.primary{
+      background:linear-gradient(#6ccf62, #3d8c3d);
+      color:#fff;
+      text-shadow:1px 1px 0 rgba(0,0,0,.35);
+    }
+    .xp-btn.danger{
+      background:linear-gradient(#ffd7d7, #ffbcbc);
+    }
+
+    .xp-input, .xp-select, .xp-textarea{
+      width:100%;
+      border:2px inset #fff;
+      background:#fff;
+      border-radius:8px;
+      padding:8px 10px;
+      font:inherit;
+      outline:none;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+      gap:10px;
+    }
+
+    .card{
+      padding:10px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      box-shadow:0 2px 0 rgba(255,255,255,.6) inset;
+    }
+    .card .name{
+      font-weight:bold;
+      line-height:1.2;
+    }
+    .card .url{
+      font-size:12px;
+      color:#444;
+      word-break:break-all;
+      background:#fff;
+      border:1px solid #d0d0d0;
+      border-radius:8px;
+      padding:6px;
+      min-height:42px;
+    }
+    .card .actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+    }
+
+    .two-col{
+      display:grid;
+      grid-template-columns: 1fr 320px;
+      gap:12px;
+      height:100%;
+    }
+
+    .stack{ display:flex; flex-direction:column; gap:10px; }
+
+    .hero{
+      background:
+        linear-gradient(135deg, rgba(255,255,255,.75), rgba(255,255,255,.25)),
+        linear-gradient(to right, rgba(74,161,255,.28), rgba(95,192,84,.22));
+      border:1px solid rgba(11,70,215,.35);
+      border-radius:14px;
+      padding:14px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.75);
+    }
+    .hero h1,.hero h2,.hero h3{ margin:0; }
+    .hero-title{
+      font-size:22px;
+      font-weight:bold;
+      margin-bottom:8px;
+    }
+    .tiny{ font-size:12px; color:#444; line-height:1.5; }
+    .muted{ color:var(--muted); }
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      font-size:12px;
+      padding:4px 10px;
+      border:1px solid #bdb7a4;
+      border-radius:999px;
+      background:#fff;
+    }
+
+    .note-wrap{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      height:100%;
+    }
+    .note-wrap textarea{
+      flex:1;
+      min-height:280px;
+      resize:none;
+      font-family:Consolas, monospace;
+      line-height:1.45;
+    }
+
+    .paint-wrap{
+      display:grid;
+      grid-template-rows:auto 1fr;
+      gap:10px;
+      height:100%;
+      min-height:420px;
+    }
+
+    canvas{
+      width:100%;
+      height:100%;
+      border:2px inset #fff;
+      background:#fff;
+      border-radius:10px;
+      touch-action:none;
+      display:block;
+    }
+
+    .taskbar{
+      position:absolute;
+      left:0; right:0; bottom:0;
+      height:44px;
+      background:linear-gradient(#0a5bd3, #0a45b6);
+      border-top:1px solid rgba(255,255,255,.35);
+      display:flex;
+      align-items:center;
+      padding:0 6px;
+      gap:6px;
+      z-index:20;
+      box-shadow:0 -2px 12px rgba(0,0,0,.30);
+    }
+
+    #startBtn{
+      min-width:96px;
+      height:34px;
+      font-weight:bold;
+      border:2px outset #fff;
+      border-radius:18px 11px 18px 11px;
+      background:linear-gradient(var(--xp-green2), var(--xp-green));
+      color:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:6px;
+      cursor:pointer;
+      text-shadow:1px 1px 0 rgba(0,0,0,.35);
+      padding:0 14px;
+    }
+    #taskButtons{
+      flex:1;
+      min-width:0;
+      display:flex;
+      gap:6px;
+      overflow:auto;
+      padding-bottom:2px;
+    }
+    .task-btn{
+      height:34px;
+      max-width:210px;
+      flex:0 0 auto;
+      border:2px outset #fff;
+      background:linear-gradient(#fefefe, #d8d8d8);
+      border-radius:9px;
+      padding:0 10px;
+      display:flex;
+      align-items:center;
+      gap:6px;
+      cursor:pointer;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .task-btn.active{ background:linear-gradient(#dcecff, #9ec2ff); }
+    .clock{
+      min-width:92px;
+      color:#fff;
+      font-size:12px;
+      text-align:right;
+      padding-right:6px;
+      text-shadow:1px 1px 0 rgba(0,0,0,.35);
+      user-select:none;
+      line-height:1.15;
+    }
+
+    #startMenu{
+      position:absolute;
+      left:6px;
+      bottom:44px;
+      width:340px;
+      background:#ece9d8;
+      border:2px solid #0b46d7;
+      border-radius:14px 14px 0 0;
+      box-shadow:var(--xp-shadow);
+      z-index:25;
+      display:none;
+      overflow:hidden;
+    }
+    #startMenu.open{ display:block; }
+    .menu-head{
+      background:linear-gradient(to bottom, var(--xp-blue2), var(--xp-blue));
+      color:#fff;
+      padding:12px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      font-weight:bold;
+      text-shadow:1px 1px 0 #00337a;
+    }
+    .menu-body{
+      padding:10px;
+      display:grid;
+      gap:8px;
+    }
+    .start-item{
+      width:100%;
+      justify-content:flex-start;
+      font-weight:bold;
+    }
+    .hint{
+      font-size:12px;
+      color:#333;
+      line-height:1.45;
+      background:#fff;
+      border:1px solid #d4d4d4;
+      border-radius:10px;
+      padding:10px;
+    }
+
+    .footer-pill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      font-size:12px;
+      opacity:.95;
+    }
+
+    .hidden{ display:none !important; }
+    .scrollbox{ max-height:100%; overflow:auto; }
+
+    .statsbar{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-bottom:12px;
+    }
+
+    .split{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+
+    .mini-toolbar{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      align-items:center;
+      margin-bottom:10px;
+    }
+
+    .wall{
+      min-height:120px;
+      border:1px dashed #7d7d7d;
+      border-radius:10px;
+      background:#fff;
+      padding:10px;
+    }
+
+    .preview-frame{
+      width:100%;
+      height:100%;
+      border:2px inset #fff;
+      border-radius:10px;
+      background:#fff;
+    }
+
+    .status{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      font-size:12px;
+      color:#333;
+      margin-top:8px;
+      flex-wrap:wrap;
+    }
+
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:4px 8px;
+      border-radius:999px;
+      background:#fff;
+      border:1px solid #cfc7ae;
+    }
+
+    @media (max-width: 900px){
+      #icons{
+        grid-template-columns: repeat(3, minmax(74px, 84px));
+        gap:10px;
+      }
+      .two-col, .split{
+        grid-template-columns:1fr;
+      }
+      #startMenu{
+        width:calc(100vw - 12px);
+      }
+      .window{
+        left:8px !important;
+        top:8px !important;
+        width:calc(100vw - 16px) !important;
+        height:calc(100vh - 60px) !important;
+        border-radius:12px 12px 0 0;
+      }
+      .taskbar{
+        height:44px;
+      }
+      #windows{
+        inset:0 0 44px 0;
+      }
+    }
+
+    @media (max-width: 560px){
+      #icons{
+        grid-template-columns: repeat(2, minmax(74px, 84px));
+      }
+      .titlebar{ height:38px; }
+      .task-btn{ max-width:140px; }
+      .clock{ min-width:74px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="desktop">
+    <div id="icons">
+      <button class="icon" data-open="home" aria-label="Abrir inicio">
+        <div class="glyph">🖥️</div><span>Inicio</span>
+      </button>
+      <button class="icon" data-open="games" aria-label="Abrir juegos">
+        <div class="glyph">🎮</div><span>Juegos</span>
+      </button>
+      <button class="icon" data-open="notepad" aria-label="Abrir bloc de notas">
+        <div class="glyph">📝</div><span>Notas</span>
+      </button>
+      <button class="icon" data-open="paint" aria-label="Abrir paint">
+        <div class="glyph">🎨</div><span>Paint</span>
+      </button>
+      <button class="icon" data-open="settings" aria-label="Abrir ajustes">
+        <div class="glyph">⚙️</div><span>Ajustes</span>
+      </button>
+      <button class="icon" id="igIcon" aria-label="Abrir Instagram">
+        <div class="glyph">📷</div><span>Instagram</span>
+      </button>
+    </div>
+
+    <div id="windows"></div>
+
+    <div id="startMenu">
+      <div class="menu-head">
+        <div class="glyph" style="width:38px;height:38px;font-size:20px;background:linear-gradient(#fff,#cfd8ff);">🪟</div>
+        GameOS XP Pro
+      </div>
+      <div class="menu-body">
+        <button class="start-item" data-open="home">🖥️ Escritorio</button>
+        <button class="start-item" data-open="games">🎮 Centro de juegos</button>
+        <button class="start-item" data-open="notepad">📝 Bloc de notas</button>
+        <button class="start-item" data-open="paint">🎨 Paint</button>
+        <button class="start-item" data-open="settings">⚙️ Ajustes</button>
+        <button class="start-item" id="startInstagram">📷 Instagram</button>
+        <button class="start-item" id="startFull">⛶ Pantalla completa</button>
+        <div class="hint">
+          Agrega juegos con una URL pública, edita tu Instagram en Ajustes y guarda notas o dibujos en el navegador.
+        </div>
+      </div>
+    </div>
+
+    <div class="taskbar">
+      <button id="startBtn">🟢 Inicio</button>
+      <div id="taskButtons"></div>
+      <div class="clock" id="clock">--:--</div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE = {
+      games: "gameosxp.games.v2",
+      note: "gameosxp.note.v2",
+      settings: "gameosxp.settings.v2",
+      windows: "gameosxp.windows.v2"
+    };
+
+    const defaultSettings = {
+      instagram: "https://instagram.com/tu_usuario",
+      wallpaper: "bliss",
+      welcomeName: "Player"
+    };
+
+    const wallpapers = {
+      bliss: "linear-gradient(to bottom, rgba(0,0,0,.10), rgba(0,0,0,.18)), url('https://s3.amazonaws.com//depot.pacdudegames.com/spacehey/bliss.jpg') center/cover fixed no-repeat",
+      aurora: "linear-gradient(to bottom, rgba(0,0,0,.10), rgba(0,0,0,.18)), radial-gradient(circle at 20% 20%, #6fc9ff 0%, transparent 30%), linear-gradient(135deg, #163b7d 0%, #1a7b9f 55%, #7cd3f2 100%)",
+      dark: "linear-gradient(to bottom, rgba(0,0,0,.18), rgba(0,0,0,.30)), linear-gradient(135deg, #0d1020 0%, #1d2744 50%, #3c5a83 100%)"
+    };
+
+    let settings = loadJSON(STORAGE.settings, defaultSettings);
+    let games = loadJSON(STORAGE.games, []);
+    let windowsData = loadJSON(STORAGE.windows, {});
+    let winZ = 10;
+
+    if (!Array.isArray(games) || games.length === 0){
+      games = [
+        { id: crypto.randomUUID(), name: "Demo Game", url: "https://example.com", icon: "🕹️" },
+        { id: crypto.randomUUID(), name: "Tu juego de GitHub", url: "https://tuusuario.github.io/tu-juego/", icon: "🌐" }
+      ];
+      saveJSON(STORAGE.games, games);
+    }
+
+    const windows = {};
+    const taskButtons = document.getElementById("taskButtons");
+    const windowsHost = document.getElementById("windows");
+    const startMenu = document.getElementById("startMenu");
+    const startBtn = document.getElementById("startBtn");
+
+    applyWallpaper(settings.wallpaper || "bliss");
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    document.getElementById("igIcon").addEventListener("click", openInstagram);
+    document.getElementById("startInstagram").addEventListener("click", openInstagram);
+    document.getElementById("startFull").addEventListener("click", toggleFullscreen);
+
+    startBtn.addEventListener("click", ()=> {
+      startMenu.classList.toggle("open");
+    });
+
+    document.addEventListener("click", (e)=> {
+      if (!startMenu.contains(e.target) && e.target !== startBtn) startMenu.classList.remove("open");
+    });
+
+    document.querySelectorAll("[data-open]").forEach(btn=>{
+      btn.addEventListener("click", ()=> {
+        openApp(btn.dataset.open);
+        startMenu.classList.remove("open");
+      });
+    });
+
+    function openInstagram(){
+      window.open(settings.instagram || defaultSettings.instagram, "_blank", "noopener,noreferrer");
+    }
+
+    function toggleFullscreen(){
+      const el = document.documentElement;
+      if (!document.fullscreenElement) el.requestFullscreen?.();
+      else document.exitFullscreen?.();
+    }
+
+    function fmtTime(){
+      const d = new Date();
+      const h = d.getHours().toString().padStart(2,"0");
+      const m = d.getMinutes().toString().padStart(2,"0");
+      const s = d.getSeconds().toString().padStart(2,"0");
+      return `${h}:${m}:${s}`;
+    }
+
+    function updateClock(){
+      const el = document.getElementById("clock");
+      el.textContent = fmtTime();
+    }
+
+    function loadJSON(key, fallback){
+      try{
+        const raw = localStorage.getItem(key);
+        if (!raw) return fallback;
+        const parsed = JSON.parse(raw);
+        return parsed ?? fallback;
+      }catch{
+        return fallback;
+      }
+    }
+
+    function saveJSON(key, value){
+      localStorage.setItem(key, JSON.stringify(value));
+    }
+
+    function applyWallpaper(name){
+      const bg = wallpapers[name] || wallpapers.bliss;
+      document.body.style.background = bg;
+      document.body.style.backgroundAttachment = "fixed";
+      if (name === "bliss"){
+        document.body.style.backgroundColor = "#2a6adf";
+      }
+    }
+
+    function escapeHtml(str){
+      return String(str)
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#39;");
+    }
+    function escapeAttr(str){ return escapeHtml(str); }
+
+    function bringToFront(id){
+      const w = windows[id];
+      if (!w) return;
+      w.el.style.zIndex = ++winZ;
+      document.querySelectorAll(".task-btn").forEach(b => b.classList.toggle("active", b.dataset.win === id));
+      persistWindowState(id);
+    }
+
+    function createTaskButton(id, title, icon){
+      const btn = document.createElement("button");
+      btn.className = "task-btn active";
+      btn.dataset.win = id;
+      btn.innerHTML = `${icon}<span>${title}</span>`;
+      btn.addEventListener("click", ()=> {
+        const w = windows[id];
+        if (!w) return;
+        if (w.el.classList.contains("hidden")){
+          w.el.classList.remove("hidden");
+          bringToFront(id);
+          btn.classList.add("active");
+        } else {
+          const isTop = Number(w.el.style.zIndex || 0) >= winZ;
+          if (isTop){
+            w.el.classList.add("hidden");
+            btn.classList.remove("active");
+          } else {
+            bringToFront(id);
+          }
+        }
+      });
+      taskButtons.appendChild(btn);
+      return btn;
+    }
+
+    function persistWindowState(id){
+      const w = windows[id];
+      if (!w) return;
+      const rect = w.el.getBoundingClientRect();
+      windowsData[id] = {
+        left: Math.round(rect.left),
+        top: Math.round(rect.top),
+        width: Math.round(rect.width),
+        height: Math.round(rect.height),
+        hidden: w.el.classList.contains("hidden"),
+        maximized: w.el.classList.contains("maximized")
+      };
+      saveJSON(STORAGE.windows, windowsData);
+    }
+
+    function createWindow(id, title, icon, {x=120, y=80, width=760, height=520, builder} = {}){
+      if (windows[id]) {
+        windows[id].el.classList.remove("hidden");
+        windows[id].task.classList.add("active");
+        bringToFront(id);
+        return windows[id];
+      }
+
+      const state = windowsData[id] || {};
+      const el = document.createElement("div");
+      el.className = "window";
+      el.style.left = Math.max(8, state.left ?? x) + "px";
+      el.style.top = Math.max(8, state.top ?? y) + "px";
+      el.style.width = (state.width ?? width) + "px";
+      el.style.height = (state.height ?? height) + "px";
+      el.style.zIndex = ++winZ;
+
+      const titlebar = document.createElement("div");
+      titlebar.className = "titlebar";
+      titlebar.innerHTML = `<span class="app-emoji">${icon}</span><span class="title">${title}</span>`;
+
+      const controls = document.createElement("div");
+      controls.className = "controls";
+      controls.innerHTML = `
+        <button title="Minimizar">_</button>
+        <button title="Maximizar">▢</button>
+        <button title="Cerrar">×</button>
+      `;
+      titlebar.appendChild(controls);
+
+      const content = document.createElement("div");
+      content.className = "content";
+
+      el.appendChild(titlebar);
+      el.appendChild(content);
+      windowsHost.appendChild(el);
+
+      const task = createTaskButton(id, title, icon);
+
+      const minBtn = controls.children[0];
+      const maxBtn = controls.children[1];
+      const closeBtn = controls.children[2];
+
+      minBtn.addEventListener("click", (e)=> {
+        e.stopPropagation();
+        el.classList.add("hidden");
+        task.classList.remove("active");
+        persistWindowState(id);
+      });
+
+      maxBtn.addEventListener("click", (e)=> {
+        e.stopPropagation();
+        toggleMaximize(id);
+      });
+
+      closeBtn.addEventListener("click", (e)=> {
+        e.stopPropagation();
+        el.classList.add("hidden");
+        task.classList.remove("active");
+        persistWindowState(id);
+      });
+
+      el.addEventListener("pointerdown", ()=> bringToFront(id));
+      titlebar.addEventListener("pointerdown", (e)=> startDrag(e, el));
+
+      if (typeof builder === "function") builder(content, el);
+
+      windows[id] = { el, content, task, title, icon };
+      if (state.hidden) el.classList.add("hidden");
+      if (state.maximized) el.classList.add("maximized");
+      task.classList.toggle("active", !state.hidden);
+      bringToFront(id);
+      return windows[id];
+    }
+
+    function toggleMaximize(id){
+      const w = windows[id];
+      if (!w) return;
+      w.el.classList.toggle("maximized");
+      if (!w.el.classList.contains("maximized") && windowsData[id]){
+        const s = windowsData[id];
+        w.el.style.left = (s.left ?? 120) + "px";
+        w.el.style.top = (s.top ?? 80) + "px";
+        w.el.style.width = (s.width ?? 760) + "px";
+        w.el.style.height = (s.height ?? 520) + "px";
+      }
+      persistWindowState(id);
+      bringToFront(id);
+    }
+
+    function startDrag(e, winEl){
+      if (e.target.tagName === "BUTTON") return;
+      if (winEl.classList.contains("maximized")) return;
+
+      const rect = winEl.getBoundingClientRect();
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const offsetX = startX - rect.left;
+      const offsetY = startY - rect.top;
+
+      winEl.setPointerCapture?.(e.pointerId);
+      function move(ev){
+        const x = Math.max(0, Math.min(window.innerWidth - 120, ev.clientX - offsetX));
+        const y = Math.max(0, Math.min(window.innerHeight - 90, ev.clientY - offsetY));
+        winEl.style.left = x + "px";
+        winEl.style.top = y + "px";
+      }
+      function up(){
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", up);
+        const winId = Object.entries(windows).find(([, obj]) => obj.el === winEl)?.[0];
+        if (winId) persistWindowState(winId);
+      }
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", up, { once:true });
+    }
+
+    function openApp(id){
+      if (windows[id]){
+        windows[id].el.classList.remove("hidden");
+        windows[id].task.classList.add("active");
+        bringToFront(id);
+        return;
+      }
+      if (id === "home") return openHome();
+      if (id === "games") return openGames();
+      if (id === "notepad") return openNotepad();
+      if (id === "paint") return openPaint();
+      if (id === "settings") return openSettings();
+    }
+
+    function openHome(){
+      createWindow("home", "GameOS XP Pro", "🖥️", {
+        x: 110, y: 88, width: 760, height: 520,
+        builder(content){
+          content.innerHTML = `
+            <div class="two-col">
+              <div class="stack">
+                <div class="hero">
+                  <div class="hero-title">Bienvenido, ${escapeHtml(settings.welcomeName || "Player")} ✨</div>
+                  <div class="tiny">
+                    Este mini sistema está hecho para tu portal de juegos: abre apps, guarda notas, dibuja y lanza juegos desde enlaces públicos.
+                  </div>
+                  <div style="height:10px"></div>
+                  <div class="statsbar">
+                    <span class="badge">🎮 Juegos: <strong>${games.length}</strong></span>
+                    <span class="badge">💾 Guardado local</span>
+                    <span class="badge">📱 Móvil listo</span>
+                    <span class="badge">🪟 Ventanas arrastrables</span>
+                  </div>
+                  <div class="toolbar" style="margin:0;">
+                    <button class="xp-btn primary" data-open="games">🎮 Abrir juegos</button>
+                    <button class="xp-btn" data-open="notepad">📝 Notas</button>
+                    <button class="xp-btn" data-open="paint">🎨 Paint</button>
+                    <button class="xp-btn" data-open="settings">⚙️ Ajustes</button>
+                    <button class="xp-btn" id="homeFull">⛶ Full screen</button>
+                  </div>
+                </div>
+
+                <div class="panel">
+                  <div style="font-weight:bold;margin-bottom:8px;">Qué hace esta versión</div>
+                  <div class="tiny">
+                    • Guarda tus juegos, ventana y notas en localStorage.<br>
+                    • Abre tus juegos dentro de una ventana o en pestaña nueva.<br>
+                    • Cambia el fondo y tu Instagram desde Ajustes.<br>
+                    • Paint funciona con dedo o mouse.
+                  </div>
+                </div>
+              </div>
+
+              <div class="panel">
+                <div style="font-weight:bold;margin-bottom:8px;">Accesos rápidos</div>
+                <div class="stack">
+                  <button class="xp-btn" data-open="games">🎮 Centro de juegos</button>
+                  <button class="xp-btn" data-open="notepad">📝 Bloc de notas</button>
+                  <button class="xp-btn" data-open="paint">🎨 Paint</button>
+                  <button class="xp-btn" data-open="settings">⚙️ Ajustes</button>
+                  <button class="xp-btn" id="homeIG">📷 Instagram</button>
+                </div>
+                <div style="height:10px"></div>
+                <div class="hint">
+                  Tip: puedes publicar tus juegos con GitHub Pages y pegarlos aquí. Luego solo presionas “Abrir”.
+                </div>
+              </div>
+            </div>
+          `;
+          content.querySelectorAll("[data-open]").forEach(btn => btn.addEventListener("click", ()=> openApp(btn.dataset.open)));
+          content.querySelector("#homeIG").addEventListener("click", openInstagram);
+          content.querySelector("#homeFull").addEventListener("click", toggleFullscreen);
+        }
+      });
+    }
+
+    function openGames(){
+      createWindow("games", "Centro de juegos", "🎮", {
+        x: 140, y: 96, width: 940, height: 600,
+        builder(content){
+          content.innerHTML = `
+            <div class="mini-toolbar">
+              <input id="gSearch" class="xp-input" style="flex:1;min-width:140px" placeholder="Buscar juego..." />
+              <button class="xp-btn" id="exportGames">⬇ Exportar JSON</button>
+              <label class="xp-btn" style="position:relative; overflow:hidden;">
+                ⬆ Importar JSON
+                <input id="importGames" type="file" accept="application/json" style="position:absolute; inset:0; opacity:0; cursor:pointer;">
+              </label>
+            </div>
+
+            <div class="toolbar">
+              <input id="gName" class="xp-input" style="flex:1;min-width:140px" placeholder="Nombre del juego" />
+              <input id="gUrl" class="xp-input" style="flex:2;min-width:180px" placeholder="URL del juego (GitHub Pages / web pública)" />
+              <input id="gIcon" class="xp-input" style="width:120px" placeholder="Emoji" value="🎮" />
+              <button class="xp-btn primary" id="addGame">Agregar</button>
+            </div>
+
+            <div class="panel">
+              <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:8px;">
+                <div style="font-weight:bold;">Tus juegos</div>
+                <div class="tiny" id="gamesCount"></div>
+              </div>
+              <div id="gameList" class="grid"></div>
+            </div>
+          `;
+
+          const list = content.querySelector("#gameList");
+          const count = content.querySelector("#gamesCount");
+          const search = content.querySelector("#gSearch");
+          const nameInput = content.querySelector("#gName");
+          const urlInput = content.querySelector("#gUrl");
+          const iconInput = content.querySelector("#gIcon");
+          const addBtn = content.querySelector("#addGame");
+
+          function renderGames(){
+            const term = search.value.trim().toLowerCase();
+            const filtered = games.filter(g =>
+              !term ||
+              (g.name || "").toLowerCase().includes(term) ||
+              (g.url || "").toLowerCase().includes(term)
+            );
+            count.textContent = `${filtered.length} visibles / ${games.length} guardados`;
+            list.innerHTML = "";
+            if (!filtered.length){
+              list.innerHTML = `<div class="hint">No encontré juegos con ese filtro. Prueba otro nombre o pega una URL.</div>`;
+              return;
+            }
+            filtered.forEach(game => {
+              const card = document.createElement("div");
+              card.className = "card";
+              card.innerHTML = `
+                <div class="name">${game.icon || "🎮"} ${escapeHtml(game.name)}</div>
+                <div class="url">${escapeHtml(game.url)}</div>
+                <div class="actions">
+                  <button class="xp-btn primary">Abrir</button>
+                  <button class="xp-btn">Pestaña</button>
+                  <button class="xp-btn">Copiar</button>
+                  <button class="xp-btn danger">Borrar</button>
+                </div>
+              `;
+              const [openBtn, tabBtn, copyBtn, delBtn] = card.querySelectorAll("button");
+              openBtn.addEventListener("click", ()=> openGameWindow(game));
+              tabBtn.addEventListener("click", ()=> window.open(game.url, "_blank", "noopener,noreferrer"));
+              copyBtn.addEventListener("click", async ()=> {
+                try{
+                  await navigator.clipboard.writeText(game.url);
+                  copyBtn.textContent = "Copiado";
+                  setTimeout(()=> copyBtn.textContent = "Copiar", 1000);
+                }catch{
+                  alert("No se pudo copiar. Copia la URL manualmente.");
+                }
+              });
+              delBtn.addEventListener("click", ()=> {
+                if (!confirm(`¿Borrar "${game.name}"?`)) return;
+                games = games.filter(g => g.id !== game.id);
+                saveJSON(STORAGE.games, games);
+                renderGames();
+              });
+              list.appendChild(card);
+            });
+          }
+
+          addBtn.addEventListener("click", ()=> {
+            const name = nameInput.value.trim();
+            const url = urlInput.value.trim();
+            const icon = iconInput.value.trim() || "🎮";
+            if (!name || !url){
+              alert("Pon nombre y URL.");
+              return;
+            }
+            games.unshift({ id: crypto.randomUUID(), name, url, icon });
+            saveJSON(STORAGE.games, games);
+            nameInput.value = "";
+            urlInput.value = "";
+            iconInput.value = "🎮";
+            renderGames();
+          });
+
+          search.addEventListener("input", renderGames);
+          nameInput.addEventListener("keydown", e => { if (e.key === "Enter") urlInput.focus(); });
+          urlInput.addEventListener("keydown", e => { if (e.key === "Enter") addBtn.click(); });
+
+          content.querySelector("#exportGames").addEventListener("click", ()=> {
+            const blob = new Blob([JSON.stringify(games, null, 2)], { type: "application/json" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = "gameos-games.json";
+            a.click();
+            setTimeout(()=> URL.revokeObjectURL(a.href), 500);
+          });
+
+          content.querySelector("#importGames").addEventListener("change", async (e)=> {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            try{
+              const text = await file.text();
+              const parsed = JSON.parse(text);
+              if (!Array.isArray(parsed)) throw new Error("Formato inválido");
+              const cleaned = parsed.filter(x => x && typeof x.name === "string" && typeof x.url === "string").map(x => ({
+                id: x.id || crypto.randomUUID(),
+                name: String(x.name),
+                url: String(x.url),
+                icon: String(x.icon || "🎮")
+              }));
+              games = cleaned.length ? cleaned : games;
+              saveJSON(STORAGE.games, games);
+              renderGames();
+            }catch(err){
+              alert("Ese archivo no parece un JSON válido de juegos.");
+            }finally{
+              e.target.value = "";
+            }
+          });
+
+          renderGames();
+        }
+      });
+    }
+
+    function openGameWindow(game){
+      const id = "game_" + game.id;
+      createWindow(id, game.name, game.icon || "🎮", {
+        x: 180, y: 120, width: 1040, height: 640,
+        builder(content){
+          content.style.padding = "0";
+          content.innerHTML = `
+            <div style="padding:12px 12px 0 12px;">
+              <div class="toolbar" style="margin-bottom:10px;">
+                <div class="footer-pill">🌐 ${escapeHtml(game.url)}</div>
+                <button class="xp-btn" id="reloadGame">↻ Recargar</button>
+                <button class="xp-btn" id="openTab">↗ Abrir en pestaña</button>
+                <button class="xp-btn" id="closeFrame">✕ Cerrar ventana</button>
+              </div>
+            </div>
+            <div style="height:calc(100% - 66px); padding:0 12px 12px 12px; min-height:0;">
+              <iframe id="gameFrame" src="${escapeAttr(game.url)}" class="preview-frame" allow="fullscreen; gamepad; autoplay"></iframe>
+            </div>
+          `;
+          const frame = content.querySelector("#gameFrame");
+          content.querySelector("#reloadGame").addEventListener("click", ()=> {
+            frame.src = game.url;
+          });
+          content.querySelector("#openTab").addEventListener("click", ()=> window.open(game.url, "_blank", "noopener,noreferrer"));
+          content.querySelector("#closeFrame").addEventListener("click", ()=> {
+            windows[id]?.el.classList.add("hidden");
+            windows[id]?.task.classList.remove("active");
+            persistWindowState(id);
+          });
+        }
+      });
+    }
+
+    function openNotepad(){
+      createWindow("notepad", "Bloc de notas", "📝", {
+        x: 170, y: 110, width: 780, height: 560,
+        builder(content){
+          content.innerHTML = `
+            <div class="note-wrap">
+              <div class="toolbar">
+                <button class="xp-btn primary" id="saveNote">💾 Guardar</button>
+                <button class="xp-btn" id="clearNote">🧼 Limpiar</button>
+                <button class="xp-btn" id="downloadNote">⬇ Descargar .txt</button>
+                <button class="xp-btn" id="insertTime">🕒 Insertar hora</button>
+                <span class="tiny" id="noteStatus">Listo</span>
+              </div>
+              <textarea id="noteArea" class="xp-textarea" placeholder="Escribe aquí..."></textarea>
+            </div>
+          `;
+          const area = content.querySelector("#noteArea");
+          const status = content.querySelector("#noteStatus");
+          area.value = localStorage.getItem(STORAGE.note) || "";
+          let timer = null;
+
+          function save(){
+            localStorage.setItem(STORAGE.note, area.value);
+            status.textContent = "Guardado " + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+            persistWindowState("notepad");
+          }
+
+          area.addEventListener("input", ()=> {
+            status.textContent = "Escribiendo...";
+            clearTimeout(timer);
+            timer = setTimeout(save, 220);
+          });
+
+          content.querySelector("#saveNote").addEventListener("click", save);
+          content.querySelector("#clearNote").addEventListener("click", ()=> {
+            if (!confirm("¿Limpiar la nota?")) return;
+            area.value = "";
+            save();
+          });
+          content.querySelector("#downloadNote").addEventListener("click", ()=> {
+            const blob = new Blob([area.value], { type: "text/plain;charset=utf-8" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = "nota.txt";
+            a.click();
+            setTimeout(()=> URL.revokeObjectURL(a.href), 500);
+          });
+          content.querySelector("#insertTime").addEventListener("click", ()=> {
+            const stamp = `\n[${new Date().toLocaleString()}]\n`;
+            area.value += stamp;
+            area.dispatchEvent(new Event("input"));
+            area.focus();
+          });
+        }
+      });
+    }
+
+    function openPaint(){
+      createWindow("paint", "Paint", "🎨", {
+        x: 210, y: 90, width: 940, height: 650,
+        builder(content){
+          content.innerHTML = `
+            <div class="paint-wrap">
+              <div class="toolbar">
+                <label class="footer-pill">Color <input id="pColor" type="color" value="#111111" style="width:42px;height:28px;border:none;background:transparent;padding:0"></label>
+                <label class="footer-pill">Grosor <input id="pSize" type="range" min="1" max="28" value="6"></label>
+                <label class="footer-pill">Modo
+                  <select id="pMode" class="xp-select" style="width:auto; padding:6px 8px;">
+                    <option value="pen">Lápiz</option>
+                    <option value="eraser">Borrador</option>
+                    <option value="pixel">Pixel</option>
+                  </select>
+                </label>
+                <button class="xp-btn" id="clearCanvas">🧼 Limpiar</button>
+                <button class="xp-btn" id="saveCanvas">💾 Guardar PNG</button>
+                <button class="xp-btn" id="fitCanvas">⬜ Ajustar</button>
+              </div>
+              <canvas id="paintCanvas"></canvas>
+            </div>
+          `;
+          const canvas = content.querySelector("#paintCanvas");
+          const ctx = canvas.getContext("2d", { willReadFrequently: true });
+          const color = content.querySelector("#pColor");
+          const size = content.querySelector("#pSize");
+          const mode = content.querySelector("#pMode");
+          const clearBtn = content.querySelector("#clearCanvas");
+          const saveBtn = content.querySelector("#saveCanvas");
+          const fitBtn = content.querySelector("#fitCanvas");
+
+          let drawing = false;
+          let last = null;
+          let snapshot = null;
+
+          function setupCanvas(fill = true){
+            const rect = canvas.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            const old = canvas.width && canvas.height ? canvas.toDataURL() : null;
+
+            canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+            canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+
+            if (fill){
+              ctx.fillStyle = "#ffffff";
+              ctx.fillRect(0, 0, rect.width, rect.height);
+            }
+
+            if (old){
+              const img = new Image();
+              img.onload = () => ctx.drawImage(img, 0, 0, rect.width, rect.height);
+              img.src = old;
+            }
+          }
+
+          function pos(e){
+            const r = canvas.getBoundingClientRect();
+            return { x: e.clientX - r.left, y: e.clientY - r.top };
+          }
+
+          function drawPoint(p){
+            const s = Number(size.value);
+            if (mode.value === "pixel"){
+              const step = Math.max(4, s * 2);
+              const x = Math.floor(p.x / step) * step;
+              const y = Math.floor(p.y / step) * step;
+              ctx.fillStyle = color.value;
+              ctx.fillRect(x, y, step, step);
+              return;
+            }
+            ctx.fillStyle = mode.value === "eraser" ? "#ffffff" : color.value;
+            if (mode.value === "eraser"){
+              ctx.fillRect(p.x - s, p.y - s, s*2, s*2);
+            } else {
+              ctx.beginPath();
+              ctx.arc(p.x, p.y, s / 2, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
+
+          function stroke(from, to){
+            if (mode.value === "pixel"){
+              drawPoint(to);
+              return;
+            }
+            ctx.beginPath();
+            ctx.moveTo(from.x, from.y);
+            ctx.lineTo(to.x, to.y);
+            ctx.strokeStyle = mode.value === "eraser" ? "#ffffff" : color.value;
+            ctx.lineWidth = Number(size.value);
+            ctx.stroke();
+          }
+
+          canvas.addEventListener("pointerdown", (e)=> {
+            drawing = true;
+            canvas.setPointerCapture(e.pointerId);
+            last = pos(e);
+            if (mode.value === "pixel") drawPoint(last);
+          });
+
+          canvas.addEventListener("pointermove", (e)=> {
+            if (!drawing) return;
+            const p = pos(e);
+            if (mode.value === "pixel"){
+              drawPoint(p);
+            } else {
+              stroke(last, p);
+            }
+            last = p;
+          });
+
+          window.addEventListener("pointerup", ()=> { drawing = false; last = null; });
+
+          clearBtn.addEventListener("click", ()=> {
+            if (!confirm("¿Limpiar el lienzo?")) return;
+            ctx.fillStyle = "#fff";
+            ctx.fillRect(0,0,canvas.getBoundingClientRect().width, canvas.getBoundingClientRect().height);
+          });
+
+          saveBtn.addEventListener("click", ()=> {
+            const a = document.createElement("a");
+            a.download = "dibujo.png";
+            a.href = canvas.toDataURL("image/png");
+            a.click();
+          });
+
+          fitBtn.addEventListener("click", ()=> setupCanvas(true));
+
+          const ro = new ResizeObserver(()=> {
+            if (snapshot) return;
+          });
+          ro.observe(canvas);
+
+          setTimeout(()=> setupCanvas(true), 80);
+
+          // preserve content on maximize / resize a little better
+          const refreshOnResize = () => {
+            const data = canvas.toDataURL("image/png");
+            snapshot = data;
+            setupCanvas(false);
+            const img = new Image();
+            img.onload = ()=> { ctx.drawImage(img, 0, 0, canvas.getBoundingClientRect().width, canvas.getBoundingClientRect().height); snapshot = null; };
+            img.src = data;
+          };
+
+          let resizeTimer = null;
+          const observer = new ResizeObserver(()=> {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(refreshOnResize, 120);
+          });
+          observer.observe(content.querySelector(".paint-wrap"));
+        }
+      });
+    }
+
+    function openSettings(){
+      createWindow("settings", "Ajustes", "⚙️", {
+        x: 240, y: 110, width: 840, height: 560,
+        builder(content){
+          content.innerHTML = `
+            <div class="split">
+              <div class="panel">
+                <div style="font-weight:bold;margin-bottom:8px;">Personalización</div>
+                <div class="stack">
+                  <label class="tiny">Usuario de Instagram</label>
+                  <input id="setIG" class="xp-input" placeholder="(https://www.instagram.com/_angel_lry/)" />
+                  <label class="tiny">Nombre de bienvenida</label>
+                  <input id="setName" class="xp-input" placeholder="Player" />
+                  <label class="tiny">Fondo</label>
+                  <select id="setWallpaper" class="xp-select">
+                    <option value="bliss">Bliss XP</option>
+                    <option value="aurora">Aurora</option>
+                    <option value="dark">Dark Vista</option>
+                  </select>
+
+                  <div class="toolbar" style="margin:0;">
+                    <button class="xp-btn primary" id="saveSettings">💾 Guardar cambios</button>
+                    <button class="xp-btn" id="resetSettings">↺ Restaurar</button>
+                    <button class="xp-btn" id="openIG">📷 Abrir Instagram</button>
+                  </div>
+                </div>
+                <div class="status">
+                  <span class="badge">Los cambios se guardan en el navegador</span>
+                </div>
+              </div>
+
+              <div class="panel">
+                <div style="font-weight:bold;margin-bottom:8px;">Vista previa</div>
+                <div class="wall" id="previewWall">
+                  <div class="tiny">
+                    Aquí puedes cambiar el estilo rápido. El fondo se aplica al escritorio al instante.
+                  </div>
+                  <div style="height:10px"></div>
+                  <div class="status">
+                    <span class="pill">🎮 Juegos locales</span>
+                    <span class="pill">📝 Notas guardadas</span>
+                    <span class="pill">🎨 Paint táctil</span>
+                  </div>
+                </div>
+                <div style="height:10px"></div>
+                <div class="hint">
+                  Este panel te sirve para dejar listo el sitio como launcher de tus juegos. Si publicas más juegos, solo agrégalos desde el Centro de juegos.
+                </div>
+              </div>
+            </div>
+          `;
+
+          const ig = content.querySelector("#setIG");
+          const name = content.querySelector("#setName");
+          const wall = content.querySelector("#setWallpaper");
+
+          ig.value = settings.instagram || defaultSettings.instagram;
+          name.value = settings.welcomeName || defaultSettings.welcomeName;
+          wall.value = settings.wallpaper || "bliss";
+
+          content.querySelector("#saveSettings").addEventListener("click", ()=> {
+            settings.instagram = ig.value.trim() || defaultSettings.instagram;
+            settings.welcomeName = name.value.trim() || defaultSettings.welcomeName;
+            settings.wallpaper = wall.value;
+            saveJSON(STORAGE.settings, settings);
+            applyWallpaper(settings.wallpaper);
+            alert("Ajustes guardados.");
+            if (windows.home) {
+              windows.home.content.innerHTML = windows.home.content.innerHTML;
+            }
+          });
+
+          content.querySelector("#resetSettings").addEventListener("click", ()=> {
+            if (!confirm("¿Restaurar ajustes?")) return;
+            settings = { ...defaultSettings };
+            saveJSON(STORAGE.settings, settings);
+            ig.value = settings.instagram;
+            name.value = settings.welcomeName;
+            wall.value = settings.wallpaper;
+            applyWallpaper(settings.wallpaper);
+          });
+
+          content.querySelector("#openIG").addEventListener("click", openInstagram);
+        }
+      });
+    }
+
+    function openAppFromHomeRefresh(){
+      // no-op helper for clarity
+    }
+
+    function openFirst(){
+      openHome();
+    }
+
+    openFirst();
+
+    windowsHost.addEventListener("pointerdown", (e)=> {
+      const win = e.target.closest(".window");
+      if (!win) return;
+      for (const [id, obj] of Object.entries(windows)) {
+        if (obj.el === win) bringToFront(id);
+      }
+    });
+
+    window.addEventListener("resize", ()=> {
+      for (const [id, obj] of Object.entries(windows)) {
+        if (obj.el.classList.contains("maximized")) continue;
+        const rect = obj.el.getBoundingClientRect();
+        const maxX = Math.max(0, window.innerWidth - 120);
+        const maxY = Math.max(0, window.innerHeight - 100);
+        const left = Math.min(Math.max(0, rect.left), maxX);
+        const top = Math.min(Math.max(0, rect.top), maxY);
+        obj.el.style.left = left + "px";
+        obj.el.style.top = top + "px";
+      }
+    });
+
+    window.addEventListener("beforeunload", ()=> {
+      for (const id of Object.keys(windows)) persistWindowState(id);
+      saveJSON(STORAGE.settings, settings);
+      saveJSON(STORAGE.games, games);
+    });
+
+  </script>
+</body>
+</html>
